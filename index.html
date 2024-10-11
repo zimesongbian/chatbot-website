@@ -19,8 +19,8 @@
 
         #chat-container {
             width: 90%;
-            max-width: 400px;
-            height: 600px;
+            max-width: 500px; /* Ajustement de la largeur maximale */
+            height: 80vh; /* Ajustement pour s'adapter à plus de contenu */
             background-color: #ffffff;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
             display: flex;
@@ -34,47 +34,116 @@
             padding: 10px;
             overflow-y: auto;
             border-bottom: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            max-height: 100%; /* Assurer que la zone de message utilise toute la hauteur */
         }
 
         .message {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 10px;
-            max-width: 80%;
+            margin: 10px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 75%;
             word-wrap: break-word;
+            position: relative;
         }
 
+        /* Style for user messages */
         .user-message {
             background-color: #dcf8c6;
             align-self: flex-end;
+            border-bottom-right-radius: 0;
         }
 
+        /* Style for bot messages */
         .bot-message {
             background-color: #e0e0e0;
             align-self: flex-start;
+            border-bottom-left-radius: 0;
         }
 
+        /* Images in bot messages */
+        .bot-message img {
+            max-width: 100%; /* Adapter l'image à la taille du conteneur */
+            height: auto;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        /* Input container styling */
         #input-container {
             display: flex;
             border-top: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f9f9f9;
         }
 
         #user-input {
             flex-grow: 1;
             padding: 10px;
             border: none;
+            border-radius: 20px;
             outline: none;
+            background-color: #f0f0f0;
+            margin-right: 10px;
         }
 
         #send-button {
-            padding: 10px;
+            padding: 10px 20px;
             background-color: #007bff;
             color: #ffffff;
             border: none;
+            border-radius: 20px;
             cursor: pointer;
         }
 
         #send-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Style des boutons */
+        .button {
+            padding: 10px;
+            margin: 5px;
+            border: none;
+            border-radius: 20px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Ajout pour supporter les carrousels */
+        .carousel-element {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+        }
+
+        .carousel-element img {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .carousel-button {
+            padding: 8px 16px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 20px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        .carousel-button:hover {
             background-color: #0056b3;
         }
     </style>
@@ -87,14 +156,12 @@
     <!-- Zone de saisie utilisateur -->
     <div id="input-container">
         <input type="text" id="user-input" placeholder="Écrivez un message..." />
-        <button id="send-button">Envoyer</button>
+        <button id="send-button" disabled>Envoyer</button>
     </div>
 </div>
 
 <script>
-    // URL de l'API Rasa exposée via ngrok (URL POST)
-    const RASA_URL = 'https://aa48-137-255-41-205.ngrok-free.app/webhooks/rest/webhook';
-
+    const RASA_URL = 'https://846c-137-255-49-216.ngrok-free.app/webhooks/rest/webhook';
     const messagesContainer = document.getElementById('messages');
     const userInput = document.getElementById('user-input');
     const sendButton = document.getElementById('send-button');
@@ -105,7 +172,56 @@
         messageElement.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
         messageElement.textContent = message;
         messagesContainer.appendChild(messageElement);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll jusqu'au dernier message
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Fonction pour ajouter des carrousels à l'interface
+    function addCarouselToChat(elements) {
+        elements.forEach((element) => {
+            const carouselElement = document.createElement('div');
+            carouselElement.classList.add('carousel-element');
+
+            const img = document.createElement('img');
+            img.src = element.image_url;
+            carouselElement.appendChild(img);
+
+            const title = document.createElement('strong');
+            title.textContent = element.title;
+            carouselElement.appendChild(title);
+
+            const subtitle = document.createElement('p');
+            subtitle.textContent = element.subtitle;
+            carouselElement.appendChild(subtitle);
+
+            element.buttons.forEach((button) => {
+                const buttonElement = document.createElement('button');
+                buttonElement.classList.add('carousel-button');
+                buttonElement.textContent = button.title;
+                buttonElement.onclick = () => handleButtonClick(button.payload);
+                carouselElement.appendChild(buttonElement);
+            });
+
+            messagesContainer.appendChild(carouselElement);
+        });
+
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Fonction pour ajouter des boutons de suggestion à l'interface
+    function addButtonsToChat(buttons) {
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.classList.add('message', 'bot-message'); // Style comme message bot
+
+        buttons.forEach(button => {
+            const buttonElement = document.createElement('button');
+            buttonElement.textContent = button.title;
+            buttonElement.classList.add('button');
+            buttonElement.onclick = () => handleButtonClick(button.payload);
+            buttonsContainer.appendChild(buttonElement);
+        });
+
+        messagesContainer.appendChild(buttonsContainer);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
     // Fonction pour envoyer le message à Rasa via une requête POST
@@ -115,58 +231,77 @@
 
         // Ajouter le message utilisateur dans l'interface
         addMessageToChat('user', message);
-
-        // Réinitialiser le champ de saisie utilisateur
         userInput.value = '';
 
         try {
-            // Envoyer la requête POST à l'API Rasa
             const response = await fetch(RASA_URL, {
-                method: 'POST',  // Utilisation explicite de la méthode POST
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ sender: 'user', message }),  // Envoyer le message utilisateur dans le corps de la requête
+                body: JSON.stringify({ sender: 'user', message }),
             });
 
-            // Vérifier si la requête a réussi
-            if (!response.ok) {
-                addMessageToChat('bot', 'Erreur de connexion au serveur.');
-                console.error('Erreur de connexion:', response.statusText);
-                return;
-            }
-
-            // Traiter la réponse de l'API Rasa
             const data = await response.json();
             console.log('Réponse de Rasa:', data);
 
-            // Vérifier s'il y a une réponse du bot
-            if (data.length === 0) {
-                addMessageToChat('bot', 'Le bot n\'a pas de réponse.');
-            } else {
-                // Ajouter la réponse du bot dans l'interface
-                data.forEach((botResponse) => {
+            data.forEach((botResponse) => {
+                if (botResponse.text) {
                     addMessageToChat('bot', botResponse.text);
-                });
-            }
+                }
+                if (botResponse.custom && botResponse.custom.payload === 'carousel') {
+                    addCarouselToChat(botResponse.custom.elements);
+                }
+                if (botResponse.buttons) {
+                    addButtonsToChat(botResponse.buttons);
+                }
+            });
         } catch (error) {
             console.error('Erreur lors de l\'envoi du message:', error);
-            addMessageToChat('bot', 'Erreur lors de la communication avec le serveur.');
+            addMessageToChat('bot', 'Erreur de communication avec le serveur.');
         }
     }
 
-    // Gestion du clic sur le bouton "Envoyer"
-    sendButton.addEventListener('click', sendMessage);
+    // Fonction pour gérer le clic sur un bouton
+    async function handleButtonClick(payload) {
+        console.log('Bouton cliqué:', payload);
+        addMessageToChat('user', payload);
 
-    // Gestion de l'appui sur la touche "Entrée"
+        try {
+            const response = await fetch(RASA_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sender: 'user', message: payload }),
+            });
+
+            const data = await response.json();
+            console.log('Réponse après clic sur bouton:', data);
+
+            data.forEach((botResponse) => {
+                if (botResponse.text) {
+                    addMessageToChat('bot', botResponse.text);
+                }
+                if (botResponse.custom && botResponse.custom.payload === 'carousel') {
+                    addCarouselToChat(botResponse.custom.elements);
+                }
+                if (botResponse.buttons) {
+                    addButtonsToChat(botResponse.buttons);
+                }
+            });
+        } catch (error) {
+            console.error('Erreur de communication après clic sur bouton:', error);
+            addMessageToChat('bot', 'Erreur de communication avec le serveur.');
+        }
+    }
+
+    sendButton.addEventListener('click', sendMessage);
     userInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();  // Si Enter est pressé, envoyer le message
+        if (e.key === 'Enter') sendMessage();
     });
 
-    // Assurer qu'aucune requête GET n'est envoyée au chargement de la page
-    window.onload = function() {
-        console.log("Page chargée. Aucune requête GET ne sera envoyée.");
-    };
+    userInput.addEventListener('input', () => {
+        sendButton.disabled = userInput.value.trim() === '';
+    });
 </script>
 </body>
 </html>
